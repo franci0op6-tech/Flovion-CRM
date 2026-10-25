@@ -34,7 +34,6 @@ export function LeadsTableTabs({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Funzione per cambiare macro-categoria (CLIENTE vs COLLABORATORE)
   const handleCambiaTipo = (nuovoTipo: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tipo", nuovoTipo);
@@ -55,18 +54,16 @@ export function LeadsTableTabs({
     if (lead.archiviato) return false;
 
     if (tipoSelezionato === "COLLABORATORE") {
-      // Per i collaboratori non separiamo per utenze/noleggio, mostriamo tutti i collaboratori attivi
       return true;
     }
 
-    // Filtri interni per i Clienti
     const s = (lead.servizio_richiesto || "").toLowerCase();
     const isUtenze = s.includes("luce") || s.includes("gas") || s.includes("internet") || s.includes("utenze");
     const isNoleggio = s.includes("noleggio") || s.includes("auto") || s.includes("breve") || s.includes("lungo");
     
     if (activeTab === "utenze") return isUtenze;
     if (activeTab === "noleggio") return isNoleggio;
-    return !isUtenze && !isNoleggio; // Credito / Default
+    return !isUtenze && !isNoleggio;
   });
 
   const handleToggleArchive = (id: number, currentStatus: boolean) => {
@@ -79,7 +76,7 @@ export function LeadsTableTabs({
   };
 
   const handleDeletePermanently = (id: number) => {
-    if (!window.confirm("Sei sicuro di voler eliminare definitivamente questo lead? L'operazione Ã¨ irreversibile.")) return;
+    if (!window.confirm("Sei sicuro di voler eliminare definitivamente questo lead? L'operazione è irreversibile.")) return;
     const formData = new FormData();
     formData.append("id", id.toString());
     startTransition(() => {
@@ -89,7 +86,6 @@ export function LeadsTableTabs({
 
   return (
     <section>
-      {/* SELETTORE MACRO-CATEGORIA: CLIENTE vs COLLABORATORE */}
       <div className="mb-6 flex items-center gap-3 border-b border-slate-200 pb-4">
         <button
           onClick={() => handleCambiaTipo("CLIENTE")}
@@ -132,7 +128,6 @@ export function LeadsTableTabs({
       </div>
       
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        {/* SOTTO-TAB VISIBILI PER I CLIENTI O COLLABORATORI */}
         <div className="flex flex-wrap bg-slate-200/50 p-1 rounded-xl">
           {tipoSelezionato === "CLIENTE" ? (
             <>
@@ -176,28 +171,26 @@ export function LeadsTableTabs({
               <th className="px-5 py-3 font-medium">Servizio / Ruolo</th>
               <th className="px-5 py-3 font-medium">Stato</th>
               <th className="px-5 py-3 font-medium">Creato</th>
-              <th className="px-5 py-3 font-medium">AttivitÃ </th>
+              <th className="px-5 py-3 font-medium">Attività</th>
               <th className="px-5 py-3 font-medium">Azioni</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {filteredLeads.map((lead: any) => (
-              <tr key={lead.id} className={`hover:bg-slate-50/80 ${lead.archiviato ? 'opacity-70' : ''}`}>
+              <tr key={lead.id} className={`hover:bg-slate-50/80 ${lead.archiviato ? "opacity-70" : ""}`}>
                 <td className="px-5 py-4"><LeadDetailsModal lead={lead} /></td>
                 <td className="px-5 py-4 text-slate-600"><div>{lead.email}</div><div className="text-slate-400">{lead.telefono}</div></td>
                 <td className="px-5 py-4 font-medium text-slate-700">{lead.servizio_richiesto}</td>
                 <td className="px-5 py-4"><LeadStatusSelect leadId={lead.id} stato={lead.stato} tipo={lead.tipo} /></td>
                 <td className="px-5 py-4 text-slate-500">{formatDate(lead.data_creazione)}</td>
-                <td className="px-5 py-4 text-slate-500">{lead._count?.tasks || 0} task Â· {lead._count?.note || 0} note</td>
+                <td className="px-5 py-4 text-slate-500">{lead._count?.tasks || 0} task · {lead._count?.note || 0} note</td>
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
                     {!lead.archiviato && <AddTaskModal leadId={lead.id} leadNome={lead.nome} />}
                     
-                    {/* TASTO MODIFICA */}
                     {!lead.archiviato && <EditLeadModal lead={lead} />}
                     
-                    {/* TASTO ARCHIVIA / RIPRISTINA */}
                     <button onClick={() => handleToggleArchive(lead.id, lead.archiviato)} disabled={isPending} title={lead.archiviato ? "Ripristina" : "Archivia"} className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${lead.archiviato ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-200" : "bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600"}`}>
                       {lead.archiviato ? (
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path fillRule="evenodd" d="M7.793 2.232a.75.75 0 01-.025 1.06L3.622 7.25h10.003a5.375 5.375 0 010 10.75H10.75a.75.75 0 010-1.5h2.875a3.875 3.875 0 000-7.75H3.622l4.146 3.957a.75.75 0 01-1.036 1.085l-5.5-5.25a.75.75 0 010-1.085l5.5-5.25a.75.75 0 011.06.025z" clipRule="evenodd" /></svg>
@@ -206,7 +199,6 @@ export function LeadsTableTabs({
                       )}
                     </button>
 
-                    {/* TASTO ELIMINA DEFINITIVAMENTE (VISIBILE SOLO NEL CESTINO) */}
                     {lead.archiviato && (
                       <button 
                         onClick={() => handleDeletePermanently(lead.id)} 
@@ -227,7 +219,7 @@ export function LeadsTableTabs({
             {filteredLeads.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
-                  {searchQuery ? `Nessun risultato per "${searchQuery}".` : activeTab === "cestino" ? "Il cestino Ã¨ vuoto." : `Nessun contatto trovato in questa sezione.`}
+                  {searchQuery ? `Nessun risultato per "${searchQuery}".` : activeTab === "cestino" ? "Il cestino è vuoto." : `Nessun contatto trovato in questa sezione.`}
                 </td>
               </tr>
             )}
