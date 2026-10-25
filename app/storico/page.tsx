@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteTask } from "@/app/actions/leads"; // Importiamo la funzione di eliminazione esistente
@@ -16,10 +17,12 @@ export default async function StoricoPage() {
   const session = await auth();
   const userId = Number(session?.user?.id);
 
-  // @ts-ignore
-  const userRole = session?.user?.ruolo; 
-  // @ts-ignore
+  const userRole = session?.user?.ruolo;
   const aziendaId = session?.user?.aziendaId;
+
+  if (!session?.user?.id || aziendaId == null) {
+    throw new Error("Utente non autenticato o non associato a un'azienda.");
+  }
 
   const filtroTasks = userRole === "ADMIN" ? { lead: { aziendaId } } : { lead: { aziendaId, utenteId: userId } };
 
@@ -36,9 +39,12 @@ export default async function StoricoPage() {
           <h1 className="text-2xl font-semibold text-slate-950">Storico Task Completati</h1>
           <p className="text-sm text-slate-500">Tutti i promemoria portati a termine</p>
         </div>
-        <a href="/" className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
-          ← Torna alla Dashboard
-        </a>
+        <Link
+  href="/"
+  className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all"
+>
+  ← Torna alla Dashboard
+</Link>
       </div>
 
       {tasksCompletatiLista.length === 0 ? (

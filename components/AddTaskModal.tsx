@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createTask, CreateTaskState } from "@/app/actions/tasks";
+import { createTask } from "@/app/actions/tasks";
 
 export function AddTaskModal({ leadId, leadNome }: { leadId: number; leadNome: string }) {
   const [isOpen, setIsOpen] = useState(false);

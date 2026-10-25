@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { salvaColoriTema } from "../actions/impostazioni";
@@ -29,11 +30,14 @@ export default async function ImpostazioniPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-950">Impostazioni Layout & Azienda</h1>
-          <p className="text-sm text-slate-500">Gestisci le preferenze e l'identità visiva</p>
+          <p className="text-sm text-slate-500">Gestisci le preferenze e l&apos;identità visiva</p>
         </div>
-        <a href="/" className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
-          ← Torna alla Dashboard
-        </a>
+        <Link
+  href="/"
+  className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all"
+>
+  ← Torna alla Dashboard
+</Link>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
@@ -65,7 +69,7 @@ export default async function ImpostazioniPage() {
         {/* Sezione Personalizzazione Colori e Layout */}
         <div>
           <h2 className="text-lg font-medium text-slate-900">Personalizzazione Colori & Tema</h2>
-          <p className="text-sm text-slate-500 mb-4">Scegli i colori per personalizzare l'aspetto visivo del CRM.</p>
+          <p className="text-sm text-slate-500 mb-4">Scegli i colori per personalizzare l&apos;aspetto visivo del CRM.</p>
 
           <form action={salvaColoriTema} className="space-y-4 max-w-md">
             <div>

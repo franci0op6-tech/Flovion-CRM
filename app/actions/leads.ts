@@ -26,8 +26,11 @@ export async function createLead(formData: FormData){
   if (!session?.user?.id) throw new Error("Accesso negato");
   
   const userId = Number(session.user.id);
-  // @ts-ignore
-  const aziendaId = Number(session.user.aziendaId);
+  const aziendaId = session.user.aziendaId;
+
+if (aziendaId === null) {
+  throw new Error("Utente non associato a un'azienda.");
+}
 
   const rawData = {
     nome: formData.get("nome") as string,
@@ -72,9 +75,13 @@ export async function createLead(formData: FormData){
 export async function updateLeadStatus(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Accesso negato");
-  const aziendaId = Number((session.user as any).aziendaId);
-  const userRole = (session.user as any).ruolo;
+  const aziendaId = session.user.aziendaId;
+  const userRole = session.user.ruolo;
   const userId = Number(session.user.id);
+  
+  if (aziendaId === null) {
+    throw new Error("Utente non associato a un'azienda.");
+  }
 
   const id = parseInt(formData.get("id") as string);
   const stato = formData.get("stato") as string;
@@ -178,9 +185,13 @@ export async function deleteNote(formData: FormData) {
 export async function toggleArchiveLead(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Accesso negato");
-  const aziendaId = Number((session.user as any).aziendaId);
-  const userRole = (session.user as any).ruolo;
-  const userId = Number(session.user.id);
+  const aziendaId = session.user.aziendaId;
+const userRole = session.user.ruolo;
+const userId = Number(session.user.id);
+
+if (aziendaId === null) {
+  throw new Error("Utente non associato a un'azienda.");
+}
 
   const id = parseInt(formData.get("id") as string);
   const isArchived = formData.get("archiviato") === "true";
@@ -227,9 +238,13 @@ export async function deleteTask(formData: FormData) {
 export async function editLead(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Accesso negato");
-  const aziendaId = Number((session.user as any).aziendaId);
-  const userRole = (session.user as any).ruolo;
+  const aziendaId = session.user.aziendaId;
+  const userRole = session.user.ruolo;
   const userId = Number(session.user.id);
+  
+  if (aziendaId === null) {
+    throw new Error("Utente non associato a un'azienda.");
+  }
 
   const id = parseInt(formData.get("id") as string);
   if (!id) throw new Error("ID non valido.");
@@ -324,7 +339,7 @@ export async function deleteDocument(formData: FormData) {
     const nomeFile = documento.url_file.replace('/uploads/', '');
     const pathFisico = join(process.cwd(), "public/uploads", nomeFile);
     await unlink(pathFisico);
-  } catch (error) {
+  } catch {
     console.log("File non trovato nel disco, proseguo...");
   }
 
@@ -355,9 +370,13 @@ export async function editTask(formData: FormData) {
 export async function deletePermanentlyLead(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Accesso negato");
-  const aziendaId = Number((session.user as any).aziendaId);
-  const userRole = (session.user as any).ruolo;
+  const aziendaId = session.user.aziendaId;
+  const userRole = session.user.ruolo;
   const userId = Number(session.user.id);
+  
+  if (aziendaId === null) {
+    throw new Error("Utente non associato a un'azienda.");
+  }
 
   const id = parseInt(formData.get("id") as string);
   if (!id) return;

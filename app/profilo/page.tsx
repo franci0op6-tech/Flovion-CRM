@@ -10,7 +10,6 @@ export default async function ProfiloPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  // @ts-ignore
   const userRole = session.user.ruolo;
 
   // 2. Recupera i dati attuali
@@ -35,8 +34,11 @@ async function creaUtente(formData: FormData) {
     "use server";
     
     // 4a. Leggiamo l'azienda di chi sta creando l'utente
-    // @ts-ignore
     const aziendaId = session?.user?.aziendaId;
+
+if (typeof aziendaId !== "number") {
+  throw new Error("Azienda non valida o non associata.");
+}
 
     const nome = formData.get("nome") as string;
     const email = formData.get("email") as string;
@@ -53,7 +55,7 @@ async function creaUtente(formData: FormData) {
         email, 
         password: hashedPassword, 
         ruolo,
-        aziendaId: Number(aziendaId) // <-- INSERITO QUI!
+        aziendaId: aziendaId // <-- INSERITO QUI!
       },
     });
     revalidatePath("/profilo");
