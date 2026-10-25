@@ -73,7 +73,7 @@ export function LeadDetailsModal({ lead }: { lead: any }) {
                 {isCollaboratore ? "Scheda Collaboratore" : "Scheda Cliente"}
               </h3>
               <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600">
-                ✕
+                ?
               </button>
             </div>
 
@@ -109,7 +109,6 @@ export function LeadDetailsModal({ lead }: { lead: any }) {
                 </div>
               </div>
               
-              {/* --- SEZIONE DATI FINANZIARI E LAVORATIVI (VISIBILE SOLO PER I CLIENTI) --- */}
               {!isCollaboratore && (
                 <div className="grid grid-cols-2 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-5 mb-8 text-sm">
                   <div>
@@ -118,7 +117,7 @@ export function LeadDetailsModal({ lead }: { lead: any }) {
                   </div>
                   <div>
                     <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Reddito Mensile Netto</span>
-                    <span className="mt-1 font-medium text-slate-900">{lead.redditoNetto ? `€ ${lead.redditoNetto}` : "Non specificato"}</span>
+                    <span className="mt-1 font-medium text-slate-900">{lead.redditoNetto ? `� ${lead.redditoNetto}` : "Non specificato"}</span>
                   </div>
                   <div>
                     <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Sei Interessato A Fare Un Mutuo?</span>
@@ -130,7 +129,6 @@ export function LeadDetailsModal({ lead }: { lead: any }) {
                   </div>
                 </div>
               )}
-              {/* --- FINE SEZIONE FINANZIARIA --- */}
 
               <div>
                 <h4 className="mb-3 text-sm font-semibold text-slate-900">Storico Note</h4>
@@ -186,7 +184,6 @@ export function LeadDetailsModal({ lead }: { lead: any }) {
                 </form>
               </div>
 
-              {/* --- SEZIONE DOCUMENTI --- */}
               <div className="mt-8 border-t border-slate-100 pt-6">
                 <h4 className="mb-3 text-sm font-semibold text-slate-900">Documenti Allegati</h4>
                 
