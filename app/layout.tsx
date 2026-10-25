@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { prisma } from "@/lib/prisma";
@@ -18,15 +19,33 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Recuperiamo le preferenze dal database (con valori di fallback di sicurezza)
-  const tema = await prisma.impostazioniGrafiche.findUnique({
-    where: { id: 1 },
-  }) || {
+  // Colori predefiniti, utilizzati anche se il database non è disponibile.
+  let tema = {
     bgColor: "#0f172a",
     textColor: "#f8fafc",
     primaryColor: "#3b82f6",
     cardBgColor: "#1e293b",
   };
+
+  try {
+    const impostazioni = await prisma.impostazioniGrafiche.findUnique({
+      where: { id: 1 },
+    });
+
+    if (impostazioni) {
+      tema = {
+        bgColor: impostazioni.bgColor,
+        textColor: impostazioni.textColor,
+        primaryColor: impostazioni.primaryColor,
+        cardBgColor: impostazioni.cardBgColor,
+      };
+    }
+  } catch (error) {
+    console.warn(
+      "Impostazioni grafiche non disponibili: uso i colori predefiniti.",
+      error
+    );
+  }
 
   return (
     <html lang="it">
