@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- TABELLA: IL TENANT (AZIENDA) ---
+model Azienda {
+  id         Int      @id @default(autoincrement())
+  nome       String
+  data_creaz DateTime @default(now())
+  
+  utenti     Utente[]
+  leads      Lead[]
+}
+
+model Lead {
+  id                 Int      @id @default(autoincrement())
+  nome               String
+  email              String
+  telefono           String
+  servizio_richiesto String
+  provincia          String?
+  stato              String   @default("Nuovo")
+  tipo               String   @default("CLIENTE") // "CLIENTE" oppure "COLLABORATORE"
+  archiviato          Boolean  @default(false)
+  data_creazione     DateTime @default(now())
+  
+  // --- NUOVI CAMPI FINANZIARI E LAVORATIVI ---
+  tipoImpiego        String?
+  redditoNetto       Float?
+  interesseMutuo     String?
+  altriFinanziamenti String?
+
+  tasks              Task[]
+  note               Nota[]
+  documenti          Documento[]
+
+  // Collegamenti
+  utenteId           Int?     
+  utente             Utente?  @relation(fields: [utenteId], references: [id])
+  
+  aziendaId          Int?     // A quale azienda appartiene il lead
+  azienda            Azienda? @relation(fields: [aziendaId], references: [id])
+}
+
+model Task {
+  id            Int      @id @default(autoincrement())
+  descrizione   String
+  data_scadenza DateTime
+  reminderSent  Boolean  @default(false)
+  completato    Boolean  @default(false)
+  leadId        Int
+  lead          Lead     @relation(fields: [leadId], references: [id])
+}
+
+model Nota {
+  id         Int      @id @default(autoincrement())
+  testo_nota String
+  data       DateTime @default(now())
+  leadId     Int
+  lead       Lead     @relation(fields: [leadId], references: [id])
+}
+
+model Documento {
+  id               Int      @id @default(autoincrement())
+  nome_file        String
+  url_file         String
+  data_caricamento DateTime @default(now())
+  leadId           Int
+  lead             Lead     @relation(fields: [leadId], references: [id])
+}
+
+model Utente {
+  id               Int      @id @default(autoincrement())
+  nome             String
+  email            String   @unique
+  password         String
+  telegram_chat_id String?
+  ruolo            String   @default("USER")
+  
+  // Collegamenti
+  leads            Lead[]
+  aziendaId        Int?     // A quale azienda appartiene l'utente
+  azienda          Azienda? @relation(fields: [aziendaId], references: [id])
+}
+
+model ImpostazioniGrafiche {
+  id           Int    @id @default(1)
+  bgColor      String @default("#0f172a") // Sfondo generale
+  textColor    String @default("#f8fafc") // Colore del testo
+  primaryColor String @default("#3b82f6") // Colore primario (bottoni/accenti)
+  cardBgColor  String @default("#1e293b") // Sfondo delle schede/card
+}
