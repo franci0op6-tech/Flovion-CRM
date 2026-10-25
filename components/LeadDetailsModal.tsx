@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { addNote, deleteNote, uploadDocument, deleteDocument } from "@/app/actions/leads";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function formatDateFull(value: any) {
   if (!value) return "Data non disponibile";
   
@@ -19,6 +20,7 @@ function formatDateFull(value: any) {
   }).format(date);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function LeadDetailsModal({ lead }: { lead: any }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -135,6 +137,7 @@ export function LeadDetailsModal({ lead }: { lead: any }) {
                 
                 <div className="mb-4 max-h-48 overflow-y-auto space-y-3 pr-2">
                   {lead.note && lead.note.length > 0 ? (
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     lead.note.map((n: any) => (
                       <div key={n.id} className="group rounded-xl bg-slate-50 p-4 border border-slate-100">
                         <div className="flex justify-between items-start mb-2">
@@ -189,6 +192,7 @@ export function LeadDetailsModal({ lead }: { lead: any }) {
                 
                 <div className="mb-4 space-y-2 max-h-40 overflow-y-auto pr-2">
                   {lead.documenti && lead.documenti.length > 0 ? (
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     lead.documenti.map((doc: any) => (
                       <div key={doc.id} className="flex items-center justify-between rounded-xl bg-slate-50 p-3 border border-slate-100 group">
                     <a 

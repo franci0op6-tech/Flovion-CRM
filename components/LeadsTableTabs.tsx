@@ -22,6 +22,7 @@ export function LeadsTableTabs({
   countClienti = 0,
   countCollaboratori = 0 
 }: { 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leads: any[]; 
   tipoSelezionato?: string;
   countClienti?: number;
@@ -40,7 +41,8 @@ export function LeadsTableTabs({
     router.push(`?${params.toString()}`);
   };
 
-  const filteredLeads = leads.filter((lead) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredLeads = leads.filter((lead: any) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch = 
       lead.nome.toLowerCase().includes(query) || 
@@ -179,7 +181,8 @@ export function LeadsTableTabs({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {filteredLeads.map((lead) => (
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {filteredLeads.map((lead: any) => (
               <tr key={lead.id} className={`hover:bg-slate-50/80 ${lead.archiviato ? 'opacity-70' : ''}`}>
                 <td className="px-5 py-4"><LeadDetailsModal lead={lead} /></td>
                 <td className="px-5 py-4 text-slate-600"><div>{lead.email}</div><div className="text-slate-400">{lead.telefono}</div></td>

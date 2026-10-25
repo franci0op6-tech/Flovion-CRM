@@ -32,7 +32,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: utente.nome,
           email: utente.email,
           ruolo: utente.ruolo,
-          // @ts-ignore
+          // @ts-expect-error
           aziendaId: utente.aziendaId, // <-- 1. Legge l'azienda dal DB
         };
       }
@@ -43,7 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.ruolo = user.ruolo as string;
-        // @ts-ignore
+        // @ts-expect-error
         token.aziendaId = user.aziendaId; // <-- 2. Salva nel token
       }
       return token;
@@ -51,9 +51,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
-        // @ts-ignore
+        // @ts-expect-error
         session.user.ruolo = token.ruolo as string;
-        // @ts-ignore
+        // @ts-expect-error
         session.user.aziendaId = token.aziendaId as number; // <-- 3. Passa alla sessione
       }
       return session;
