@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { editLead } from "@/app/actions/leads";
 
-export function EditLeadModal({ lead }: { lead: any }) {
+import type { Prisma } from "@prisma/client";
+
+type Lead = Prisma.LeadGetPayload<object>;
+
+export function EditLeadModal({ lead }: { lead: Lead }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 

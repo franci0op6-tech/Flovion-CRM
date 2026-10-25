@@ -1,9 +1,12 @@
 "use client";
 
+import type { Prisma } from "@prisma/client";
 import { useState, useTransition } from "react";
 import { editTask } from "@/app/actions/leads";
 
-export function EditTaskModal({ task }: { task: any }) {
+type Task = Prisma.TaskGetPayload<object>;
+
+export function EditTaskModal({ task }: { task: Task }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
