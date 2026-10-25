@@ -12,7 +12,7 @@ const leadSchema = z.object({
   nome: z.string().min(2, "Il nome è obbligatorio").max(100),
   email: z.string().email("Email non valida"),
   telefono: z.string().min(5, "Telefono non valido").max(20),
-  servizio_richiesto: z.string().optional().nullable(),
+  servizio_richiesto: z.string().min(1, "Seleziona un servizio"),
   provincia: z.string().optional().nullable(),
   tipo: z.string().optional(),
   tipoImpiego: z.string().optional().nullable(),

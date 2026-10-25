@@ -55,16 +55,17 @@ export default async function DashboardPage({
   const session = await auth();
   const userId = Number(session?.user?.id);
 
-  // @ts-ignore
-  const userRole = session?.user?.ruolo; 
-  // @ts-ignore
+  const userRole = session?.user?.ruolo;
   const aziendaId = session?.user?.aziendaId;
-
-  // 🏢 RECUPERO IL NOME DELL'AZIENDA DAL DATABASE
-  const aziendaDB = await prisma.azienda.findUnique({
-    where: { id: aziendaId },
-    select: { nome: true }
-  });
+  
+  const aziendaDB =
+    typeof aziendaId === "number"
+      ? await prisma.azienda.findUnique({
+          where: { id: aziendaId },
+          select: { nome: true },
+        })
+      : null;
+  
   const nomeAzienda = aziendaDB?.nome || "CRM";
 
   const filtroBase = userRole === "ADMIN" ? { aziendaId } : { aziendaId, utenteId: userId };
