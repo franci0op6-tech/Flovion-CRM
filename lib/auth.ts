@@ -33,7 +33,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: utente.email,
           ruolo: utente.ruolo,
           // @ts-expect-error
-          aziendaId: utente.aziendaId, // <-- 1. Legge l'azienda dal DB
+          aziendaId: utente.aziendaId,
         };
       }
     })
@@ -44,7 +44,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.ruolo = user.ruolo as string;
         // @ts-expect-error
-        token.aziendaId = user.aziendaId; // <-- 2. Salva nel token
+        token.aziendaId = user.aziendaId;
       }
       return token;
     },
@@ -54,7 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // @ts-expect-error
         session.user.ruolo = token.ruolo as string;
         // @ts-expect-error
-        session.user.aziendaId = token.aziendaId as number; // <-- 3. Passa alla sessione
+        session.user.aziendaId = token.aziendaId as number;
       }
       return session;
     }
