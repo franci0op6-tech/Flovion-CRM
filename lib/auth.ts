@@ -1,9 +1,13 @@
+
+import { authConfig } from "@/lib/auth.config";
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
+
   providers: [
     CredentialsProvider({
       name: "Credenziali",
@@ -57,9 +61,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = typeof token.id === "string" ? token.id : "";
+        session.user.id =
+          typeof token.id === "string" ? token.id : "";
+
         session.user.ruolo =
           typeof token.ruolo === "string" ? token.ruolo : "USER";
+
         session.user.aziendaId =
           typeof token.aziendaId === "number" ? token.aziendaId : null;
       }
