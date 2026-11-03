@@ -238,3 +238,13 @@ model NotificaTask {
   @@index([stato, prossimoTentativo])
   @@index([taskId, versionePromemoria])
 }
+
+model LetturaNotificaInterna {
+  utenteId     Int
+  chiave       String   @db.VarChar
+  vista        Boolean  @default(false)
+  letta        Boolean  @default(false)
+  aggiornataIl DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([utenteId, chiave])
+}
