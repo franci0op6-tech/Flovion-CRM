@@ -98,7 +98,39 @@ export async function inviaTemplateWhatsApp({ destinatario, tipo, taskId, nomeCl
     return { stato: "ESITO_INCERTO", motivo: "Connessione interrotta: esito del messaggio sconosciuto." };
   }
   if (!response.ok) {
-    return { stato: "RIFIUTATO", codiceHttp: response.status, motivo: `Meta ha rifiutato la richiesta (HTTP ${response.status}).` };
+    let codiceMeta: number | null = null;
+  
+    try {
+      const risposta: unknown = await response.json();
+  
+      if (
+        typeof risposta === "object" &&
+        risposta !== null &&
+        "error" in risposta
+      ) {
+        const errore = risposta.error;
+  
+        if (
+          typeof errore === "object" &&
+          errore !== null &&
+          "code" in errore &&
+          typeof errore.code === "number"
+        ) {
+          codiceMeta = errore.code;
+        }
+      }
+    } catch {
+      // La risposta potrebbe non essere JSON.
+    }
+  
+    return {
+      stato: "RIFIUTATO",
+      codiceHttp: response.status,
+      motivo:
+        codiceMeta !== null
+          ? `Meta HTTP ${response.status}, codice ${codiceMeta}.`
+          : `Meta ha rifiutato la richiesta (HTTP ${response.status}).`,
+    };
   }
   let result: unknown;
   try { result = await response.json(); }
