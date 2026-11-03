@@ -1,15 +1,18 @@
+
 import type { DefaultSession } from "next-auth";
+
+export type RuoloUtente = "SUPERADMIN" | "ADMIN" | "USER";
 
 declare module "next-auth" {
   interface User {
-    ruolo: string;
+    ruolo: RuoloUtente;
     aziendaId: number | null;
   }
 
   interface Session {
     user: {
       id: string;
-      ruolo: string;
+      ruolo: RuoloUtente;
       aziendaId: number | null;
     } & DefaultSession["user"];
   }
@@ -18,7 +21,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
-    ruolo?: string;
+    ruolo?: RuoloUtente;
     aziendaId?: number | null;
   }
 }

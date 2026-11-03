@@ -1,32 +1,67 @@
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
 
-const prisma = new PrismaClient()
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
+const prisma = new PrismaClient();
 
 async function main() {
-  // 1. Criptiamo la password per sicurezza (usa pure 'admin123' per ora, potrai cambiarla)
-  const hashedPassword = await bcrypt.hash('admin123', 10)
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  // 2. Creiamo l'utente nel database
-  const admin = await prisma.utente.upsert({
-    where: { email: 'francesco@crm.it' },
+  if (!adminPassword) {
+    throw new Error(
+      "La variabile ADMIN_PASSWORD non è impostata."
+    );
+  }
+
+  const email = "francesco@crm.it";
+
+  // Crea l'azienda solo se non esiste.
+  const azienda = await prisma.azienda.upsert({
+    where: { id: 1 },
     update: {},
     create: {
-      nome: 'Francesco Errico',
-      email: 'francesco@crm.it',
-      password: hashedPassword,
-      telegram_chat_id: '1205115934', // Il tuo ID Telegram già pronto!
+      nome: "Flovion",
     },
-  })
+  });
 
-  console.log('✅ Utente Admin creato con successo:', admin.email)
+  // Se l'account esiste già, non modificarlo.
+  const utenteEsistente = await prisma.utente.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  if (utenteEsistente) {
+    console.log(
+      "L'account esiste già: nessuna modifica all'utente."
+    );
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(
+    adminPassword,
+    12
+  );
+
+  await prisma.utente.create({
+    data: {
+      nome: "Francesco Errico",
+      email,
+      password: hashedPassword,
+      ruolo: "ADMIN",
+      aziendaId: azienda.id,
+    },
+  });
+
+  console.log(
+    `Azienda "${azienda.nome}" e account iniziale configurati.`
+  );
 }
 
 main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
+  .catch((error) => {
+    console.error("Errore durante il seed:", error);
+    process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

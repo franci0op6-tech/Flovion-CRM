@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,14 +8,38 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- TABELLA: IL TENANT (AZIENDA) ---
+enum ModalitaPromemoriaWhatsApp {
+  AZIENDA
+  COLLABORATORE
+}
+
+enum TipoNotificaTask {
+  ASSEGNAZIONE
+  GIORNO_SCADENZA
+  QUINDICI_MINUTI_PRIMA
+}
+
+enum StatoNotificaTask {
+  IN_ATTESA
+  IN_LAVORAZIONE
+  INVIATA
+  FALLITA
+  ESITO_INCERTO
+  ANNULLATA
+}
+
 model Azienda {
-  id         Int      @id @default(autoincrement())
-  nome       String
-  data_creaz DateTime @default(now())
-  
-  utenti     Utente[]
-  leads      Lead[]
+  id                   Int    @id @default(autoincrement())
+  nome                 String
+  data_creaz           DateTime @default(now())
+
+  leads                Lead[]
+  utenti               Utente[]
+  impostazioniGrafiche ImpostazioniGrafiche?
+
+  whatsappNumero             String?
+  whatsappModalitaPromemoria ModalitaPromemoriaWhatsApp @default(AZIENDA)
+  whatsappOraPromemoria      String @default("07:00")
 }
 
 model Lead {
@@ -25,73 +50,191 @@ model Lead {
   servizio_richiesto String
   provincia          String?
   stato              String   @default("Nuovo")
-  tipo               String   @default("CLIENTE") // "CLIENTE" oppure "COLLABORATORE"
-  archiviato          Boolean  @default(false)
+  tipo               String   @default("CLIENTE")
+  archiviato         Boolean  @default(false)
   data_creazione     DateTime @default(now())
-  
-  // --- NUOVI CAMPI FINANZIARI E LAVORATIVI ---
+
   tipoImpiego        String?
   redditoNetto       Float?
   interesseMutuo     String?
   altriFinanziamenti String?
 
-  tasks              Task[]
-  note               Nota[]
-  documenti          Documento[]
+  utenteId           Int?
+  aziendaId          Int?
 
-  // Collegamenti
-  utenteId           Int?     
-  utente             Utente?  @relation(fields: [utenteId], references: [id])
-  
-  aziendaId          Int?     // A quale azienda appartiene il lead
+  documenti          Documento[]
   azienda            Azienda? @relation(fields: [aziendaId], references: [id])
+  utente             Utente? @relation(fields: [utenteId], references: [id])
+  note               Nota[]
+  tasks              Task[]
+
+  accessiCondivisi   AccessoLead[]
 }
 
 model Task {
-  id            Int      @id @default(autoincrement())
-  descrizione   String
-  data_scadenza DateTime
-  reminderSent  Boolean  @default(false)
-  completato    Boolean  @default(false)
-  leadId        Int
-  lead          Lead     @relation(fields: [leadId], references: [id])
+  id             Int      @id @default(autoincrement())
+  descrizione    String
+  data_scadenza  DateTime
+  reminderSent   Boolean  @default(false)
+  completato     Boolean  @default(false)
+
+  leadId         Int
+  lead           Lead     @relation(fields: [leadId], references: [id])
+
+  assegnatoAId   Int?
+  assegnatoA     Utente?  @relation("TaskAssegnatario", fields: [assegnatoAId], references: [id], onDelete: SetNull)
+
+  creatoDaId     Int?
+  creatoDa       Utente?  @relation("TaskCreatore", fields: [creatoDaId], references: [id], onDelete: SetNull)
+
+  assegnatoIl    DateTime?
+  versionePromemoria Int @default(1)
+
+  storicoAssegnazioni StoricoAssegnazione[]
+  notifiche           NotificaTask[]
+
+  @@index([assegnatoAId])
+  @@index([creatoDaId])
 }
 
 model Nota {
-  id         Int      @id @default(autoincrement())
-  testo_nota String
-  data       DateTime @default(now())
-  leadId     Int
-  lead       Lead     @relation(fields: [leadId], references: [id])
+  id          Int      @id @default(autoincrement())
+  testo_nota  String
+  data        DateTime @default(now())
+
+  leadId      Int
+  lead        Lead     @relation(fields: [leadId], references: [id])
 }
 
 model Documento {
-  id               Int      @id @default(autoincrement())
-  nome_file        String
-  url_file         String
-  data_caricamento DateTime @default(now())
-  leadId           Int
-  lead             Lead     @relation(fields: [leadId], references: [id])
+  id                Int      @id @default(autoincrement())
+  nome_file         String
+  url_file          String
+  data_caricamento  DateTime @default(now())
+
+  leadId            Int
+  lead              Lead     @relation(fields: [leadId], references: [id])
 }
 
 model Utente {
-  id               Int      @id @default(autoincrement())
-  nome             String
-  email            String   @unique
-  password         String
-  telegram_chat_id String?
-  ruolo            String   @default("USER")
-  
-  // Collegamenti
-  leads            Lead[]
-  aziendaId        Int?     // A quale azienda appartiene l'utente
-  azienda          Azienda? @relation(fields: [aziendaId], references: [id])
+  id        Int     @id @default(autoincrement())
+  nome      String
+  email     String  @unique
+  password  String
+  ruolo     String  @default("USER")
+
+  aziendaId Int?
+  leads     Lead[]
+  azienda   Azienda? @relation(fields: [aziendaId], references: [id])
+
+  whatsappNumero   String?
+
+  taskAssegnati Task[] @relation("TaskAssegnatario")
+  taskCreati    Task[] @relation("TaskCreatore")
+
+  accessiLead     AccessoLead[] @relation("AccessoLeadDestinatario")
+  accessiConcessi AccessoLead[] @relation("AccessoLeadConcedente")
+  accessiRevocati AccessoLead[] @relation("AccessoLeadRevocante")
+
+  assegnazioniPrecedenti StoricoAssegnazione[] @relation("AssegnazionePrecedente")
+  assegnazioniNuove      StoricoAssegnazione[] @relation("AssegnazioneNuova")
+  assegnazioniEseguite   StoricoAssegnazione[] @relation("AssegnazioneAutore")
 }
 
 model ImpostazioniGrafiche {
-  id           Int    @id @default(1)
-  bgColor      String @default("#0f172a") // Sfondo generale
-  textColor    String @default("#f8fafc") // Colore del testo
-  primaryColor String @default("#3b82f6") // Colore primario (bottoni/accenti)
-  cardBgColor  String @default("#1e293b") // Sfondo delle schede/card
+  id           Int    @id @default(autoincrement())
+  aziendaId    Int    @unique
+  bgColor      String @default("#0f172a")
+  textColor    String @default("#f8fafc")
+  primaryColor String @default("#3b82f6")
+  cardBgColor  String @default("#1e293b")
+
+  azienda Azienda @relation(fields: [aziendaId], references: [id], onDelete: Cascade)
+}
+
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+}
+
+model AccessoLead {
+  id           Int      @id @default(autoincrement())
+  leadId       Int
+  utenteId     Int
+  concessoDaId Int?
+  concessoIl   DateTime @default(now())
+  revocatoDaId Int?
+  revocatoIl   DateTime?
+
+  lead        Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  utente      Utente  @relation("AccessoLeadDestinatario", fields: [utenteId], references: [id], onDelete: Cascade)
+  concessoDa  Utente? @relation("AccessoLeadConcedente", fields: [concessoDaId], references: [id], onDelete: SetNull)
+  revocatoDa  Utente? @relation("AccessoLeadRevocante", fields: [revocatoDaId], references: [id], onDelete: SetNull)
+
+  @@unique([leadId, utenteId])
+  @@index([utenteId, revocatoIl])
+  @@index([concessoDaId])
+  @@index([revocatoDaId])
+}
+
+
+model StoricoAssegnazione {
+  id             Int      @id @default(autoincrement())
+
+  // Diventa null se il task viene eliminato.
+  taskId         Int?
+
+  // Conserva l'ID del task anche dopo l'eliminazione.
+  taskIdOriginale Int?
+
+  precedenteId   Int?
+  nuovoId        Int?
+  effettuataDaId Int?
+  effettuataIl   DateTime @default(now())
+
+  // Conserva lo storico quando il task viene eliminato.
+  task         Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  precedente   Utente? @relation("AssegnazionePrecedente", fields: [precedenteId], references: [id], onDelete: SetNull)
+  nuovo        Utente? @relation("AssegnazioneNuova", fields: [nuovoId], references: [id], onDelete: SetNull)
+  effettuataDa Utente? @relation("AssegnazioneAutore", fields: [effettuataDaId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, effettuataIl])
+  @@index([taskIdOriginale])
+  @@index([precedenteId])
+  @@index([nuovoId])
+  @@index([effettuataDaId])
+}
+
+
+model NotificaTask {
+  id                   Int @id @default(autoincrement())
+
+  taskId               Int
+  task                 Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  tipo                 TipoNotificaTask
+  stato                StatoNotificaTask @default(IN_ATTESA)
+
+  chiaveIdempotenza    String @unique
+  versionePromemoria   Int
+  programmataPer       DateTime
+
+  destinatario         String?
+
+  tentativi            Int @default(0)
+  prossimoTentativo    DateTime?
+  bloccataFinoAl       DateTime?
+
+  ultimoErrore         String?
+  messaggioProviderId  String? @unique
+
+  inviataIl            DateTime?
+  creataIl             DateTime @default(now())
+  aggiornataIl         DateTime @default(now()) @updatedAt
+
+  @@index([stato, programmataPer])
+  @@index([stato, prossimoTentativo])
+  @@index([taskId, versionePromemoria])
 }

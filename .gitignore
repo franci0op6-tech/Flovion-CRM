@@ -5,3 +5,32 @@ prisma/dev.db
 prisma/dev.db-journal
 .env
 *.log
+
+# Variabili ambiente e credenziali
+.env.*
+!.env.example
+
+# Database locali e backup
+*.db
+*.db-journal
+*.db.backup
+*.sqlite
+*.sqlite3
+prisma/*.backup
+prisma/migrations-backup/
+prisma/migrations-sqlite-backup/
+
+# File temporanei e test
+*.lock
+!.gitignore
+!package-lock.json
+.folavion-whatsapp-test-isolato.lock
+audit-report*.json
+anteprima_migrazione.sql
+test_migrazione_rollback.sql
+tsconfig.tsbuildinfo
+verifica-azienda.ts
+components/*.backup.tsx
+
+# Upload locali
+public/uploads/

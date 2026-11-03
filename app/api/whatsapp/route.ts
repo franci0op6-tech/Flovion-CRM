@@ -1,84 +1,124 @@
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import { NextResponse } from "next/server";
+
+import {
+  eseguiDispatcherWhatsApp,
+} from "@/lib/whatsapp-dispatcher";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  try {
-    const url = new URL(request.url);
-    const secretKey = url.searchParams.get("key");
+  /*
+   * Controllo di sicurezza del cron.
+   *
+   * Il secret viene letto dalle variabili
+   * d'ambiente e non dall'URL.
+   */
+  const cronSecret = process.env.CRON_SECRET;
 
-    if (secretKey !== process.env.CRON_SECRET) {
-      return NextResponse.json({ error: "Authentication Error" }, { status: 401 });
-    }
-
-    const token = process.env.WHATSAPP_TOKEN;
-    const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const destinatario = process.env.WHATSAPP_DESTINATARIO;
-
-    if (!token || !phoneId || !destinatario) {
-      return NextResponse.json({ error: "Credenziali WhatsApp mancanti nel .env" }, { status: 500 });
-    }
-
-    let notificheInviate = 0;
-
-    // TEST IMMEDIATO: Prendiamo TUTTI i task attivi non ancora notificati, senza filtri di orario restrittivi
-    const upcomingTasks = await prisma.task.findMany({
-      where: {
-        reminderSent: false,
-        completato: false,
+  if (!cronSecret || cronSecret.length < 16) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Cron non configurato.",
       },
-      include: { lead: true },
-    });
-
-    if (upcomingTasks.length === 0) {
-      return NextResponse.json({ success: true, message: "Nessun task attivo trovato da notificare." });
-    }
-
-    for (const task of upcomingTasks) {
-      const taskTitle = task.descrizione || "Task senza titolo";
-      const orario = new Date(task.data_scadenza).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const tipoContatto = task.lead?.tipo === "COLLABORATORE" ? "Collaboratore" : "Cliente";
-      const nomeContatto = task.lead?.nome || "Contatto sconosciuto";
-
-      const messageText = `⏰ *Promemoria CRM*: Scadenza imminente!\n\n👤 *${tipoContatto}:* ${nomeContatto}\n📝 *Attività:* ${taskTitle}\n🕒 *Previsto per le:* ${orario}`;
-
-      const response = await fetch(
-        `https://graph.facebook.com/v17.0/${phoneId}/messages`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            to: destinatario,
-            type: "text",
-            text: { body: messageText },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        await prisma.task.update({
-          where: { id: task.id },
-          data: { reminderSent: true },
-        });
-        notificheInviate++;
-      } else {
-        const errorData = await response.json();
-        console.error("Errore Meta API:", errorData);
+      {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store",
+        },
       }
-    }
+    );
+  }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Notifiche inviate con successo! Totale: ${notificheInviate}` 
-    });
+  const authorization =
+    request.headers.get("authorization");
 
+  if (
+    authorization !== `Bearer ${cronSecret}`
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Non autorizzato.",
+      },
+      {
+        status: 401,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
+  /*
+   * Protezione aggiuntiva:
+   *
+   * Quando WhatsApp non è abilitato,
+   * non avviamo nemmeno il dispatcher.
+   *
+   * In questo modo non vengono eseguite
+   * query sulla tabella NotificaTask,
+   * che non è ancora stata creata su Neon.
+   */
+  if (
+    process.env.WHATSAPP_INVIO_ABILITATO !==
+    "true"
+  ) {
+    return NextResponse.json(
+      {
+        success: true,
+        attivo: false,
+        messaggio:
+          "Invio WhatsApp disabilitato. Nessuna notifica elaborata.",
+        messaggiInviati: 0,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
+  try {
+    const risultato =
+      await eseguiDispatcherWhatsApp();
+
+    return NextResponse.json(
+      {
+        success: true,
+        ...risultato,
+        messaggio:
+          "Elaborazione della coda completata.",
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (error) {
-    console.error("Errore nell'invio del promemoria:", error);
-    return NextResponse.json({ error: "Errore interno del server" }, { status: 500 });
+    console.error(
+      "Errore durante il dispatcher WhatsApp:",
+      error instanceof Error
+        ? error.name
+        : "Errore sconosciuto"
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "Errore durante l'elaborazione delle notifiche.",
+      },
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   }
 }

@@ -4,6 +4,20 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import type { RuoloUtente } from "@/types/next-auth";
+
+const RUOLI_VALIDI: RuoloUtente[] = [
+  "SUPERADMIN",
+  "ADMIN",
+  "USER",
+];
+
+function isRuoloUtente(ruolo: unknown): ruolo is RuoloUtente {
+  return (
+    typeof ruolo === "string" &&
+    RUOLI_VALIDI.includes(ruolo as RuoloUtente)
+  );
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -28,14 +42,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email: credentials.email },
         });
 
-        if (!utente) return null;
+        if (!utente || !isRuoloUtente(utente.ruolo)) {
+          return null;
+        }
 
         const passwordCorretta = await bcrypt.compare(
           credentials.password,
           utente.password
         );
 
-        if (!passwordCorretta) return null;
+        if (!passwordCorretta) {
+          return null;
+        }
 
         return {
           id: utente.id.toString(),
@@ -64,11 +82,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id =
           typeof token.id === "string" ? token.id : "";
 
-        session.user.ruolo =
-          typeof token.ruolo === "string" ? token.ruolo : "USER";
+        session.user.ruolo = isRuoloUtente(token.ruolo)
+          ? token.ruolo
+          : "USER";
 
         session.user.aziendaId =
-          typeof token.aziendaId === "number" ? token.aziendaId : null;
+          typeof token.aziendaId === "number"
+            ? token.aziendaId
+            : null;
       }
 
       return session;
