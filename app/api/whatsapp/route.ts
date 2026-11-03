@@ -1,20 +1,17 @@
 
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-
-import {
-  eseguiDispatcherWhatsApp,
-} from "@/lib/whatsapp-dispatcher";
+import { eseguiDispatcherWhatsApp } from "@/lib/whatsapp-dispatcher";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const headersNoCache = {
+  "Cache-Control": "no-store",
+};
+
 export async function GET(request: Request) {
-  /*
-   * Controllo di sicurezza del cron.
-   *
-   * Il secret viene letto dalle variabili
-   * d'ambiente e non dall'URL.
-   */
+  // 1. Verifica obbligatoria del segreto CRON.
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret || cronSecret.length < 16) {
@@ -25,19 +22,14 @@ export async function GET(request: Request) {
       },
       {
         status: 503,
-        headers: {
-          "Cache-Control": "no-store",
-        },
+        headers: headersNoCache,
       }
     );
   }
 
-  const authorization =
-    request.headers.get("authorization");
+  const authorization = request.headers.get("authorization");
 
-  if (
-    authorization !== `Bearer ${cronSecret}`
-  ) {
+  if (!authorization?.startsWith("Bearer ")) {
     return NextResponse.json(
       {
         success: false,
@@ -45,58 +37,90 @@ export async function GET(request: Request) {
       },
       {
         status: 401,
-        headers: {
-          "Cache-Control": "no-store",
-        },
+        headers: headersNoCache,
       }
     );
   }
 
-  /*
-   * Protezione aggiuntiva:
-   *
-   * Quando WhatsApp non è abilitato,
-   * non avviamo nemmeno il dispatcher.
-   *
-   * In questo modo non vengono eseguite
-   * query sulla tabella NotificaTask,
-   * che non è ancora stata creata su Neon.
-   */
-  if (
-    process.env.WHATSAPP_INVIO_ABILITATO !==
-    "true"
-  ) {
+  const ricevuto = Buffer.from(authorization.slice(7), "utf8");
+  const atteso = Buffer.from(cronSecret, "utf8");
+
+  const autorizzato =
+    ricevuto.length === atteso.length &&
+    timingSafeEqual(ricevuto, atteso);
+
+  if (!autorizzato) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Non autorizzato.",
+      },
+      {
+        status: 401,
+        headers: headersNoCache,
+      }
+    );
+  }
+
+  // 2. Il cron deve essere esplicitamente abilitato.
+  if (process.env.FOLAVION_CRON_ABILITATO !== "true") {
     return NextResponse.json(
       {
         success: true,
         attivo: false,
-        messaggio:
-          "Invio WhatsApp disabilitato. Nessuna notifica elaborata.",
+        messaggio: "Cron WhatsApp disabilitato.",
         messaggiInviati: 0,
       },
       {
-        headers: {
-          "Cache-Control": "no-store",
-        },
+        headers: headersNoCache,
       }
     );
   }
 
+  // 3. Il dispatcher automatico può funzionare
+  // soltanto nell'ambiente Vercel Production.
+  if (process.env.VERCEL_ENV !== "production") {
+    return NextResponse.json(
+      {
+        success: true,
+        attivo: false,
+        messaggio: "Ambiente non di produzione.",
+        messaggiInviati: 0,
+      },
+      {
+        headers: headersNoCache,
+      }
+    );
+  }
+
+  // 4. L'invio WhatsApp deve essere esplicitamente abilitato.
+  if (process.env.WHATSAPP_INVIO_ABILITATO !== "true") {
+    return NextResponse.json(
+      {
+        success: true,
+        attivo: false,
+        messaggio: "Invio WhatsApp disabilitato.",
+        messaggiInviati: 0,
+      },
+      {
+        headers: headersNoCache,
+      }
+    );
+  }
+
+  // 5. Esegui il dispatcher soltanto dopo
+  // aver superato tutti i controlli.
   try {
-    const risultato =
-      await eseguiDispatcherWhatsApp();
+    const risultato = await eseguiDispatcherWhatsApp();
 
     return NextResponse.json(
       {
         success: true,
         ...risultato,
-        messaggio:
-          "Elaborazione della coda completata.",
+        messaggio: "Elaborazione della coda completata.",
       },
       {
-        headers: {
-          "Cache-Control": "no-store",
-        },
+        headers: headersNoCache,
       }
     );
   } catch (error) {
@@ -110,14 +134,11 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          "Errore durante l'elaborazione delle notifiche.",
+        error: "Errore durante l'elaborazione delle notifiche.",
       },
       {
         status: 500,
-        headers: {
-          "Cache-Control": "no-store",
-        },
+        headers: headersNoCache,
       }
     );
   }
