@@ -34,3 +34,5 @@ components/*.backup.tsx
 
 # Upload locali
 public/uploads/
+.vercel
+.env*
