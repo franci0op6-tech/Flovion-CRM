@@ -61,6 +61,33 @@ export async function pianificaNotificheTask({
     throw new Error("Data non valida.");
   }
 
+
+  
+  // Legge la modalità WhatsApp configurata per l'azienda del task.
+  const task = await tx.task.findUnique({
+    where: { id: taskId },
+    select: {
+      lead: {
+        select: {
+          azienda: {
+            select: {
+              whatsappModalitaPromemoria: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!task) {
+    throw new Error("Task non trovato durante la pianificazione.");
+  }
+
+  const modalitaPromemoria =
+    task.lead.azienda?.whatsappModalitaPromemoria === "COLLABORATORE"
+      ? "COLLABORATORE"
+      : "AZIENDA";
+
   const notifiche: {
     taskId: number;
     tipo: TipoNotificaTask;
@@ -95,13 +122,17 @@ export async function pianificaNotificheTask({
     const ora = getOraValida(oraPromemoria);
     const orarioGiornaliero = parseLocalToUTC(`${giornoItaliano}T${ora}`);
 
+
     function aggiungiPromemoria(tipo: TipoNotificaTask, quando: Date) {
-      aggiungi(tipo, quando, "AZIENDA");
-      // Nessun secondo destinatario se il task non è assegnato.
-      if (assegnatoAId !== null) {
-        aggiungi(tipo, quando, "COLLABORATORE");
+      if (modalitaPromemoria === "COLLABORATORE") {
+        if (assegnatoAId !== null) {
+          aggiungi(tipo, quando, "COLLABORATORE");
+        }
+      } else {
+        aggiungi(tipo, quando, "AZIENDA");
       }
     }
+
 
     if (
       orarioGiornaliero.getTime() > riferimento.getTime() &&
