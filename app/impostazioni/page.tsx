@@ -92,37 +92,10 @@ export default async function ImpostazioniPage({
     if (normalizzato && !/^\+[1-9]\d{7,14}$/.test(normalizzato)) {
       throw new Error("Usa il formato internazionale, ad esempio +393331234567.");
     }
-    // Diagnostica temporanea: non mostra numeri né credenziali.
-    const host = (() => {
-      try {
-        return new URL(process.env.DATABASE_URL ?? "").hostname;
-      } catch {
-        return "NON VALIDO";
-      }
-    })();
-    console.info("[WHATSAPP_AZIENDA] richiesta salvataggio", {
-      aziendaId: richiesto,
-      numeroPresente: normalizzato.length > 0,
-      host,
-    });
-    // Protezione aggiuntiva: in questa fase lavoriamo SOLO sul database di test.
-    if (host !== "ep-soft-shadow-b99bz7up.c-7.eu-central-1.aws.neon.tech") {
-      console.error("[WHATSAPP_AZIENDA] BLOCCATO: host non di test", { host });
-      throw new Error("Salvataggio bloccato: il server non usa il database di TEST.");
-    }
-    const aggiornato = await prisma.azienda.update({
+    await prisma.azienda.update({
       where: { id: richiesto },
       data: { whatsappNumero: normalizzato || null },
-      select: { id: true, whatsappNumero: true },
-    });
-    const rilettura = await prisma.azienda.findUnique({
-      where: { id: richiesto },
-      select: { whatsappNumero: true },
-    });
-    console.info("[WHATSAPP_AZIENDA] salvataggio completato", {
-      aziendaId: aggiornato.id,
-      numeroAggiornato: Boolean(aggiornato.whatsappNumero?.trim()),
-      numeroRiletto: Boolean(rilettura?.whatsappNumero?.trim()),
+      select: { id: true },
     });
     revalidatePath("/impostazioni");
   }
