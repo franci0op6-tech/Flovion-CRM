@@ -14,6 +14,7 @@ type PianificaNotificheParams = {
   assegnatoAId: number | null;
   oraPromemoria: string;
   nuovaAssegnazione: boolean;
+  nuovaTask?: boolean;
   riferimento?: Date;
 };
 
@@ -47,6 +48,7 @@ export async function pianificaNotificheTask({
   assegnatoAId,
   oraPromemoria,
   nuovaAssegnazione,
+  nuovaTask = false,
   riferimento = new Date(),
 }: PianificaNotificheParams): Promise<number> {
   if (
@@ -61,32 +63,10 @@ export async function pianificaNotificheTask({
     throw new Error("Data non valida.");
   }
 
-
-  
-  // Legge la modalità WhatsApp configurata per l'azienda del task.
-  const task = await tx.task.findUnique({
-    where: { id: taskId },
-    select: {
-      lead: {
-        select: {
-          azienda: {
-            select: {
-              whatsappModalitaPromemoria: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
+  const task = await tx.task.findUnique({ where: { id: taskId }, select: { id: true } });
   if (!task) {
     throw new Error("Task non trovato durante la pianificazione.");
   }
-
-  const modalitaPromemoria =
-    task.lead.azienda?.whatsappModalitaPromemoria === "COLLABORATORE"
-      ? "COLLABORATORE"
-      : "AZIENDA";
 
   const notifiche: {
     taskId: number;
@@ -105,8 +85,7 @@ export async function pianificaNotificheTask({
       taskId,
       tipo,
       versionePromemoria,
-      // Il suffisso rende indipendenti le due notifiche, senza
-      // cambiare la struttura del database o i record precedenti.
+      // Il dispatcher usa il suffisso per risolvere il destinatario della riga.
       chiaveIdempotenza: `task:${taskId}:v${versionePromemoria}:${tipo}:${destinatario}`,
       programmataPer,
     });
@@ -115,35 +94,27 @@ export async function pianificaNotificheTask({
   // L'assegnazione viene comunicata soltanto al collaboratore.
   if (nuovaAssegnazione && assegnatoAId !== null) {
     aggiungi(TipoNotificaTask.ASSEGNAZIONE, riferimento, "COLLABORATORE");
+  } else if (nuovaTask && assegnatoAId === null) {
+    // La creazione senza assegnatario avvisa il numero aziendale.
+    aggiungi(TipoNotificaTask.ASSEGNAZIONE, riferimento, "AZIENDA");
   }
 
   if (dataScadenza.getTime() > riferimento.getTime()) {
     const giornoItaliano = getDataItaliana(dataScadenza);
     const ora = getOraValida(oraPromemoria);
     const orarioGiornaliero = parseLocalToUTC(`${giornoItaliano}T${ora}`);
-
-
-    function aggiungiPromemoria(tipo: TipoNotificaTask, quando: Date) {
-      if (modalitaPromemoria === "COLLABORATORE") {
-        if (assegnatoAId !== null) {
-          aggiungi(tipo, quando, "COLLABORATORE");
-        }
-      } else {
-        aggiungi(tipo, quando, "AZIENDA");
-      }
-    }
-
+    const destinatario = assegnatoAId === null ? "AZIENDA" : "COLLABORATORE";
 
     if (
       orarioGiornaliero.getTime() > riferimento.getTime() &&
       orarioGiornaliero.getTime() < dataScadenza.getTime()
     ) {
-      aggiungiPromemoria(TipoNotificaTask.GIORNO_SCADENZA, orarioGiornaliero);
+      aggiungi(TipoNotificaTask.GIORNO_SCADENZA, orarioGiornaliero, destinatario);
     }
 
     const quindiciMinutiPrima = new Date(dataScadenza.getTime() - QUINDICI_MINUTI);
     if (quindiciMinutiPrima.getTime() > riferimento.getTime()) {
-      aggiungiPromemoria(TipoNotificaTask.QUINDICI_MINUTI_PRIMA, quindiciMinutiPrima);
+      aggiungi(TipoNotificaTask.QUINDICI_MINUTI_PRIMA, quindiciMinutiPrima, destinatario);
     }
   }
 
