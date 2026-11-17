@@ -309,6 +309,7 @@ export async function createTask(
             lead.azienda!.whatsappOraPromemoria,
           nuovaAssegnazione:
             assegnatoAId !== null,
+          nuovaTask: true,
           riferimento: momentoCreazione,
         });
 
